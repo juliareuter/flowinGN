@@ -6,10 +6,7 @@ from sklearn.model_selection import train_test_split
 from pysr import PySRRegressor
 
 
-def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_complexity, model_selection):
-
-    n_neighbors = n_particles-1
-
+def giveData(Re, phi, spherical, n_neighbors, node_update, const_complexity):
     filename = f'Re{Re.replace(".","")}_phi{phi.replace(".","")}'
     if spherical == True:
         filename += '_spherical'
@@ -19,9 +16,8 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
         columns = ['x', 'y', 'z' , 'u_x', 'u_y', 'u_z']
     if node_update == True:
         filename += '_nodeupdate'
-
    
-    dataset = pd.read_csv('./data/'+filename+'.csv')
+    dataset = pd.read_csv('./GP_data/'+filename+'.csv')
 
     X = dataset[columns]
     y = dataset[['F_i', 'F_true']]
@@ -35,15 +31,20 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
     y_test = _y_test['F_i']
     F_test = _y_test['F_true'].to_numpy()
     F_test = np.array([F_test[i*n_neighbors] for i in range(n_test//n_neighbors)])
+    
+    #TODO: Only use training data during fitting. Test data shall generate an R^2 plot. 
+    F_nodeupdate_train = _y_train['F_true'].to_numpy()
+    F_nodeupdate_train = np.array([F_nodeupdate_train[i*n_neighbors] for i in range(F_nodeupdate_train.shape[0]//n_neighbors)])
+    X_nodeupdate_train = X_train[['u_x', 'u_y', 'u_z']].to_numpy()
+    X_nodeupdate_train = np.array([X_nodeupdate_train[i*n_neighbors] for i in range(X_nodeupdate_train.shape[0]//n_neighbors)])
+    X_nodeupdate_test = X_test[['u_x', 'u_y', 'u_z']].to_numpy()
+    X_nodeupdate_test = np.array([X_nodeupdate_test[i*n_neighbors] for i in range(X_nodeupdate_test.shape[0]//n_neighbors)])
 
-    # For refitting the best equation, all available data is used
-    X_refit = X
-    y_refit = y['F_i'].to_numpy()
-    F_refit = y['F_true'].to_numpy()
-    F_refit = np.array([F_refit[i*n_neighbors] for i in range(F_refit.shape[0]//n_neighbors)])
-    X_node_refit = X[['u_x', 'u_y', 'u_z']].to_numpy()
-    X_node_refit = np.array([X_node_refit[i*n_neighbors] for i in range(X_node_refit.shape[0]//n_neighbors)])
+    return X_train, y_train, F_nodeupdate_train, X_nodeupdate_train, X_test, y_test, F_test, X_nodeupdate_test, filename
 
+def runGP(X_train, y_train, X_nodeupdate_train, F_nodeupdate_train, n_iterations, run, const_complexity, model_selection, filename):
+
+    #Define algorithm settings
     bin_operators       = ["+", "*", "/"]
     un_operators        = ["cos", "sin", "inv(x) = 1/x", "tan", "exp", "log"]
     comp_of_operators   = {"+": 1, "*": 1, "/": 1, "inv":1, "sin": 2, "cos": 2, "tan": 2, "log": 2, "exp": 2}
@@ -53,7 +54,7 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
   
 
     if node_update == False:
-        if c_complexity == 1:
+        if const_complexity == 1:
             filename += '_comp1'
         model = pysr.PySRRegressor(
             model_selection=model_selection,  # Result is mix of simplicity+accuracy
@@ -67,7 +68,7 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
             nested_constraints=nested_constr,
             verbosity=1,
             complexity_of_operators=comp_of_operators,
-            complexity_of_constants=c_complexity,
+            complexity_of_constants=const_complexity,
             complexity_of_variables=comp_of_var,
             )
         model.fit(X_train, y_train)
@@ -85,7 +86,7 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
             nested_constraints=nested_constr,
             verbosity=1,
             complexity_of_operators=comp_of_operators,
-            complexity_of_constants=c_complexity,
+            complexity_of_constants=const_complexity,
             complexity_of_variables=comp_of_var,
         )
         msg_model.fit(X_train, y_train)
@@ -102,21 +103,20 @@ def runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, c_com
             nested_constraints=nested_constr,
             verbosity=1,
             complexity_of_operators=comp_of_operators,
-            complexity_of_constants=c_complexity,
+            complexity_of_constants=const_complexity,
             complexity_of_variables=comp_of_var,
         )
 
-        msg_model = PySRRegressor.from_file('./GP_results/'+filename+'_msg_equations_'+str(run)+'.pkl', model_selection = model_selection)
+        msg_model = PySRRegressor.from_file('./GP_results/'+filename+'_msg_equations_'+model_selection+'_'+str(run)+'.csv', model_selection = model_selection)
         msg_model.set_params(extra_sympy_mappings={'inv': lambda x: 1/x})
         msg_model.refresh()
 
-        y_refit_pred = msg_model.predict(X_refit)
-        F_refit_pred = np.array([np.sum(y_refit_pred[i*29:(i+1)*29]) for i in range(y_refit_pred.shape[0]//n_neighbors)])
-        print('R^2 on refitting data (prediction of single force component): ', R2(y_refit_pred, y_refit))
-        X_n_refit = np.concatenate((F_refit_pred.reshape((F_refit_pred.shape[0],1)), X_node_refit), axis = 1)
-        X_n_refit = pd.DataFrame(X_n_refit, columns = ['F_i', 'u_x', 'u_y', 'u_z'])
+        y_msg_pred = msg_model.predict(X_train)
+        F_msg_pred = np.array([np.sum(y_msg_pred[i*29:(i+1)*29]) for i in range(y_msg_pred.shape[0]//n_neighbors)])
+        X_n = np.concatenate((F_msg_pred.reshape((F_msg_pred.shape[0],1)), X_nodeupdate_train), axis = 1)
+        X_n = pd.DataFrame(X_n, columns = ['F_i', 'u_x', 'u_y', 'u_z'])
         
-        node_model.fit(X_n_refit, F_refit)
+        node_model.fit(X_n, F_nodeupdate_train)
 
 
 def R2(y_pred, y_true):
@@ -124,25 +124,59 @@ def R2(y_pred, y_true):
     mean = np.sum(np.square(y_true - np.mean(y_true))) 
     return 1 - err / (mean + 1e-30) # add tiny value 1e-30 to avoid division by 0
 
+def MSE(y_pred, y_true):
+    return np.mean(np.square(y_true - y_pred))
+
 if __name__ == '__main__':
     # Number of current run
     run = 0
     #So far, we provide datasets for phi in {0.064, 0.125, 0.216, 0.343}
     Re = '0'
-    phi = '0.064'
+    phi = '0.343'
     #Set to True if spherical coordinates shall be used (This is the standard setting of our experiments)
     spherical = True
     #The provided datasets include 30 particles, of which one is in located in the center and surrounded by 29 neighbors 
     n_particles = 30
+    n_neighbors = n_particles - 1
     #If node_update == True: y = f(g(x)), if node_update == False: y = f(x)
-    node_update = False
+    node_update = True
     #const_complexity is either 1 or 2, only relevant if node_update == False
     const_complexity = 1
     #For test, set to true and only 2 iterations will be completed
-    test = True
+    test = False
     n_iterations = 100 if test == False else 2
     #Choose between 'accuracy' and 'best' (See PySR documentation for more information on model selection). We used 'best' in this paper. 
     model_selection = 'best'
-   
 
-    runGP(Re, phi, spherical, n_particles, node_update, n_iterations, run, const_complexity, model_selection)    
+    X_train, y_train, F_nodeupdate_train, X_nodeupdate_train, X_test, y_test, F_test, X_nodeupdate_test, filename = giveData(Re, phi, spherical, n_neighbors, node_update, const_complexity)
+    #Comment the next line if only analysis of a previously trained model is required
+    runGP(X_train, y_train, X_nodeupdate_train, F_nodeupdate_train, n_iterations, run, const_complexity, model_selection, filename)    
+    
+    
+    if (node_update == False) and (const_complexity == 1) :
+        filename += '_comp1'
+    if node_update == False:
+        model = PySRRegressor.from_file('./GP_results/'+filename+'_equations_'+str(run)+'.pkl', model_selection = 'best')
+        model.set_params(extra_sympy_mappings={'inv': lambda x: 1/x})
+        model.refresh()
+
+        y_test_pred = model.predict(X_test)
+        F_test_pred = np.array([np.sum(y_test_pred[i*29:(i+1)*29]) for i in range(y_test_pred.shape[0]//n_neighbors)])
+        print('Test R^2: ', R2(F_test_pred, F_test))
+        print('Test MSE: ', MSE(F_test_pred, F_test))
+
+    if node_update == True:
+        msg_model = PySRRegressor.from_file('./GP_results/'+filename+'_msg_equations_'+model_selection+'_'+str(run)+'.pkl', model_selection = model_selection)
+        node_model = PySRRegressor.from_file('./GP_results/'+filename+'_node_equations_'+model_selection+'_'+str(run)+'.pkl', model_selection = model_selection)
+        msg_model.set_params(extra_sympy_mappings={'inv': lambda x: 1/x})
+        msg_model.refresh()
+        node_model.set_params(extra_sympy_mappings={'inv': lambda x: 1/x})
+        node_model.refresh()
+
+        y_test_msg_pred = msg_model.predict(X_test)
+        F_test_msg_pred = np.array([np.sum(y_test_msg_pred[i*29:(i+1)*29]) for i in range(y_test_msg_pred.shape[0]//n_neighbors)])
+        X_n = np.concatenate((F_test_msg_pred.reshape((F_test_msg_pred.shape[0],1)), X_nodeupdate_test), axis = 1)
+        X_n = pd.DataFrame(X_n, columns = ['F_i', 'u_x', 'u_y', 'u_z'])
+        F_test_node_pred = node_model.predict(X_n)
+        print('Test R^2: ', R2(F_test_node_pred, F_test))
+        print('Test MSE: ', MSE(F_test_node_pred, F_test))
