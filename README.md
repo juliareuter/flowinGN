@@ -4,6 +4,9 @@ In this work, we model thirty particles and their mutual interactions as a graph
 * $y = f(x) = \sum_{j \in N_i}{m_{i,j}}$
 * $y = f(g(x)) = f(\sum_{j \in N_i}{m_{i,j}})$
 
+![GN_GP_Schematic_smaller](https://user-images.githubusercontent.com/44205238/225003466-e2ddd936-1283-431f-94df-f5cc6972855f.png)
+
+
 **The core of this repo constitutes the following files:** 
 * "GN_flowing.ipynb": Code to train a graph network for the problem at hand.
 * "GP_flowing.py": Code to identify symbolic models using genetic programming, which replace the network blocks of the GN.
