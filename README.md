@@ -1,6 +1,8 @@
 # flowinGN
 This repo contains code for the paper titled "Graph Networks as Inductive Bias for Genetic Programming: Symbolic Models for Particle-Laden Flows".
-In this work, we model thirty particles and their mutual interactions as a graph, where one particle corresponds to a node, and particle-particle interactions are represented by edges between two nodes. A graph network (GN) is trained to approximate the underlying relations between particles and predict the fluid-induced $F_{\textrm{fluid}}$ on the center particle. The edge messages are captured during training of the GN, and used as training data for the genetic programming (GP) algorithm. This reduces the complexity of the problem, and thus facilitates the search process for fitting equations. 
+In this work, we model thirty particles and their mutual interactions as a graph, where one particle corresponds to a node, and particle-particle interactions are represented by edges between two nodes. A graph network (GN) is trained to approximate the underlying relations between particles and predict the fluid-induced force $F_{\textrm{fluid}}$ on the center particle. The edge messages are captured during training of the GN, and used as training data for the genetic programming (GP) algorithm. This reduces the complexity of the problem, and thus facilitates the search process for fitting equations. We supply code for two underlying interaction types: 
+* $y = f(x) = \sum_{j \in \mathcal{N}_i}{m_{i,j}}$
+* $y = f(g(x)) = f(\sum_{j \in \mathcal{N}_i}{m_{i,j}})$
 
 **The core of this repo constitutes the following files:** 
 * "GN_flowing.ipynb": Code to train a graph network for the problem at hand.
@@ -16,10 +18,8 @@ In this work, we model thirty particles and their mutual interactions as a graph
 ### Requirements 
 I recommend to set up two virtual environments to run this code:
 * pytorch_env: For the GN part, install PyG (PyTorch Geometric) and all its dependencies. For me, the conda installation on macOS for M1 worked well.
-* pysr_env: For the GP part, PySR as well as its Julia (not my name, the programming language) distribution is required. I had a positive experience with the pip installation on macOS for M1. 
-
-### Usage
+* pysr_env: For the GP part, PySR as well as its Julia (not my name, the programming language) distribution is required. I had a positive experience with the pip installation on macOS for M1.
 
 
 ### Contact
-For any inquiries relateed to our code, please feel free to contact me at [julia.reuter@ovgu.de](https://ci.ovgu.de/Team/Julia+Reuter.html).
+For any inquiries related to this repo, please feel free to contact me at [julia.reuter@ovgu.de](https://ci.ovgu.de/Team/Julia+Reuter.html).
