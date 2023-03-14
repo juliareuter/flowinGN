@@ -130,7 +130,7 @@ if __name__ == '__main__':
     run = 0
     #So far, we provide datasets for phi in {0.064, 0.125, 0.216, 0.343}
     Re = '0'
-    phi = '0.343'
+    phi = '0.064'
     #Set to True if spherical coordinates shall be used (This is the standard setting of our experiments)
     spherical = True
     #The provided datasets include 30 particles, of which one is in located in the center and surrounded by 29 neighbors 
