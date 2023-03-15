@@ -28,4 +28,4 @@ I recommend to set up two virtual environments to run this code:
 For any inquiries related to this repo, please feel free to contact me at [julia.reuter@ovgu.de](https://ci.ovgu.de/Team/Julia+Reuter.html).
 
 ### Acknowledgment
-This work was funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Priority Programme ``SPP 2331: Machine Learning in Chemical Engineering''. The project titled ``Improving simulations of large-scale dense particle-laden flows with machine learning: a genetic programming approach'' is supervised by Sanaz Mostaghim and Berend van Wachem at Otto-von-Guericke-University Magdeburg, Germany.
+This work was funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Priority Programme "SPP 2331: Machine Learning in Chemical Engineering". The project titled "Improving simulations of large-scale dense particle-laden flows with machine learning: a genetic programming approach" is supervised by Sanaz Mostaghim and Berend van Wachem at Otto-von-Guericke-University Magdeburg, Germany.
